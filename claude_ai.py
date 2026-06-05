@@ -8,14 +8,12 @@ SYSTEM_PROMPT = """Ты умный и дружелюбный AI-ассистен
 async def ask_claude(messages: list) -> str:
     try:
         import anthropic
-        http_client = httpx.Client()
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, http_client=http_client)
-        response = client.messages.create(
-            model="claude-opus-4-5",
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            messages=messages
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        response = client.completions.create(
+            model="claude-instant-1",
+            max_tokens_to_sample=1024,
+            prompt=f"\n\nHuman: {messages[-1]['content']}\n\nAssistant:",
         )
-        return response.content[0].text
+        return response.completion
     except Exception as e:
         return f"⚠️ Ошибка: {e}"
