@@ -11,7 +11,7 @@ def main_menu() -> InlineKeyboardMarkup:
 def subscription_menu() -> InlineKeyboardMarkup:
     buttons = []
     for key, val in PRICES.items():
-        price_usd = val["price"] // 100
+        price_usd = val["price"] / 100
         buttons.append([
             InlineKeyboardButton(
                 text=f"📅 {val['label']} — ${price_usd:.2f}",
