@@ -54,10 +54,12 @@ async def cmd_newchat(message: Message):
     user_id = message.from_user.id
     chats = await get_user_chats(user_id)
     chat_num = len(chats) + 1
-    chat_id = await create_chat(user_id, f"Chat {chat_num}")
+    await create_chat(user_id, f"Chat {chat_num}")
     await message.answer(
-        "✨ <b>New chat started!</b>\n\n"
-        "Hi! How can I help you?",
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"✨ <b>New chat started!</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Hi! How can I help you?",
         parse_mode="HTML",
         reply_markup=main_menu()
     )
@@ -123,7 +125,10 @@ async def cb_newchat(call: CallbackQuery):
     chat_num = len(chats) + 1
     await create_chat(user_id, f"Chat {chat_num}")
     await call.message.answer(
-        "✨ <b>New chat started!</b>\n\nHi! How can I help you?",
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"✨ <b>New chat started!</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Hi! How can I help you?",
         parse_mode="HTML",
         reply_markup=main_menu()
     )
@@ -133,13 +138,16 @@ async def cb_newchat(call: CallbackQuery):
 async def cb_switchchat(call: CallbackQuery):
     chat_id = int(call.data.split("_")[1])
     await set_active_chat(call.from_user.id, chat_id)
-    
+
     chats = await get_user_chats(call.from_user.id)
     chat = next((c for c in chats if c["id"] == chat_id), None)
     title = chat["title"] if chat else "chat"
-    
+
     await call.message.answer(
-        f"✅ Switched to: <b>{title}</b>",
+        f"━━━━━━━━━━━━━━━━━━━\n"
+        f"💬 Switched to: <b>{title}</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━\n\n"
+        f"Hi! How can I help you?",
         parse_mode="HTML",
         reply_markup=main_menu()
     )
