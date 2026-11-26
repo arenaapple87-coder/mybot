@@ -1,6 +1,6 @@
 import os
 import aiosqlite
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # На Railway база должна лежать на Volume, иначе она стирается при каждом обновлении.
 # Укажи в Variables: DB_PATH=/data/bot_database.db
@@ -40,6 +40,16 @@ async def init_db():
                 created_at TEXT DEFAULT (datetime('now'))
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id     INTEGER,
+                plan        TEXT,
+                stars       INTEGER,
+                charge_id   TEXT,
+                created_at  TEXT DEFAULT (datetime('now'))
+            )
+        """)
         # Новые колонки для статистики (для уже существующей базы)
         for column in ("last_active TEXT", "total_messages INTEGER DEFAULT 0"):
             try:
@@ -71,7 +81,8 @@ async def get_or_create_user(user_id: int, username: str = ""):
             row = await cursor.fetchone()
         return dict(row)
 
-async def has_active_subscription(user_id: int) -> bool:
+async def get_sub_expires(user_id: int):
+    """Дата окончания подписки или None, если подписки нет."""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             "SELECT sub_expires FROM users WHERE user_id = ?", (user_id,)
@@ -79,8 +90,28 @@ async def has_active_subscription(user_id: int) -> bool:
         row = await cursor.fetchone()
         if row and row[0]:
             expires = datetime.fromisoformat(row[0])
-            return expires > datetime.now()
-        return False
+            if expires > datetime.utcnow():
+                return expires
+        return None
+
+async def has_active_subscription(user_id: int) -> bool:
+    return await get_sub_expires(user_id) is not None
+
+async def extend_subscription(user_id: int, days: int, plan: str, stars: int, charge_id: str) -> datetime:
+    """Продлевает подписку (от текущей даты окончания, если она ещё активна)."""
+    start = await get_sub_expires(user_id) or datetime.utcnow()
+    expires = start + timedelta(days=days)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET sub_expires = ? WHERE user_id = ?",
+            (expires.isoformat(sep=" ", timespec="seconds"), user_id)
+        )
+        await db.execute(
+            "INSERT INTO payments (user_id, plan, stars, charge_id) VALUES (?, ?, ?, ?)",
+            (user_id, plan, stars, charge_id)
+        )
+        await db.commit()
+    return expires
 
 async def get_messages_today(user_id: int) -> int:
     async with aiosqlite.connect(DB_PATH) as db:
@@ -219,4 +250,6 @@ async def get_stats() -> dict:
             "msgs_today":    await one("SELECT COUNT(*) FROM history WHERE role = 'user' AND date(created_at) = date('now')"),
             "msgs_total":    await one("SELECT SUM(total_messages) FROM users"),
             "subscribers":   await one("SELECT COUNT(*) FROM users WHERE sub_expires > datetime('now')"),
+            "stars_total":   await one("SELECT SUM(stars) FROM payments"),
+            "stars_month":   await one("SELECT SUM(stars) FROM payments WHERE created_at >= datetime('now', '-30 days')"),
         }

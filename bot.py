@@ -5,6 +5,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
 
 from config import BOT_TOKEN
+from texts import COMMANDS
 from handlers import router
 from database import init_db
 
@@ -17,14 +18,12 @@ async def main():
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
     
-    await bot.set_my_commands([
-        BotCommand(command="start", description="🏠 Main menu"),
-        BotCommand(command="newchat", description="✨ New chat"),
-        BotCommand(command="chats", description="💬 My chats"),
-        BotCommand(command="status", description="📊 Message limit"),
-        BotCommand(command="clear", description="🗑 Clear current chat"),
-        BotCommand(command="help", description="❓ Help"),
-    ])
+    # Меню команд на языке пользователя (по умолчанию — английский)
+    for lang, commands in COMMANDS.items():
+        await bot.set_my_commands(
+            [BotCommand(command=c, description=d) for c, d in commands],
+            language_code=None if lang == "en" else lang,
+        )
     
     print("✅ Bot started!")
     await dp.start_polling(bot)
