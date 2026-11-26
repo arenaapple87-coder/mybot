@@ -131,6 +131,7 @@ TEXTS = {
         "uk": "\n\n📅 Зараз підписка активна до <b>{date}</b>. Нова оплата її продовжить.",
         "en": "\n\n📅 Your subscription is active until <b>{date}</b>. A new payment extends it.",
     },
+    "save": {"ru": "(выгода {pct}%)", "uk": "(вигода {pct}%)", "en": "(save {pct}%)"},
     "plan_1_month": {"ru": "1 месяц", "uk": "1 місяць", "en": "1 month"},
     "plan_3_months": {"ru": "3 месяца", "uk": "3 місяці", "en": "3 months"},
     "plan_1_year": {"ru": "1 год", "uk": "1 рік", "en": "1 year"},

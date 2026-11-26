@@ -50,6 +50,12 @@ async def init_db():
                 created_at  TEXT DEFAULT (datetime('now'))
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
         # Новые колонки для статистики (для уже существующей базы)
         for column in ("last_active TEXT", "total_messages INTEGER DEFAULT 0"):
             try:
@@ -253,3 +259,21 @@ async def get_stats() -> dict:
             "stars_total":   await one("SELECT SUM(stars) FROM payments"),
             "stars_month":   await one("SELECT SUM(stars) FROM payments WHERE created_at >= datetime('now', '-30 days')"),
         }
+
+
+# ─── Настройки ─────────────────────────────────────────────────────────────
+
+async def get_setting(key: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        row = await cursor.fetchone()
+        return row[0] if row else None
+
+async def set_setting(key: str, value):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, str(value))
+        )
+        await db.commit()

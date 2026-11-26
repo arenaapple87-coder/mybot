@@ -17,8 +17,9 @@ ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split("
 SUPPORT_CONTACT = os.getenv("SUPPORT_CONTACT", "")
 
 # ─── Лимиты ────────────────────────────────────────────────────────────────
-FREE_MESSAGES_PER_DAY = 10
-SUB_MESSAGES_PER_DAY = 100      # защита от слишком больших счетов за ИИ
+# Значения по умолчанию. Админ меняет их прямо в боте: /admin
+FREE_MESSAGES_PER_DAY = 5
+SUB_MESSAGES_PER_DAY = 30       # защита от слишком больших счетов за ИИ
 
 HISTORY_MESSAGES = 10           # сколько последних сообщений чата отправлять ИИ
 HISTORY_MAX_CHARS = 1500        # длинные старые сообщения обрезаются до этой длины
@@ -29,8 +30,11 @@ FILE_MAX_CHARS = 40000          # сколько текста из файла о
 PDF_SCAN_MAX_PAGES = 5          # PDF-скан без текста читается ИИ «глазами», это дороже
 
 # ─── Подписка (цены в звёздах Telegram ⭐) ─────────────────────────────────
-PRICES = {
-    "1_month":  {"stars": 150,  "days": 30},
-    "3_months": {"stars": 350,  "days": 90},
-    "1_year":   {"stars": 1000, "days": 365},
+# Админ задаёт только цену месяца (/setprice), остальное считается само:
+# 3 месяца = 2.5 месяца (выгода 17%), год = 8 месяцев (выгода 33%).
+MONTH_PRICE = 150
+PLANS = {
+    "1_month":  {"days": 30,  "months": 1,  "pay_months": 1},
+    "3_months": {"days": 90,  "months": 3,  "pay_months": 2.5},
+    "1_year":   {"days": 365, "months": 12, "pay_months": 8},
 }
