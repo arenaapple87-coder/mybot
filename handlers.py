@@ -3,13 +3,14 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
 
-from config import FREE_MESSAGES_PER_DAY
+from config import FREE_MESSAGES_PER_DAY, ADMIN_IDS
 from database import (
     get_or_create_user, has_active_subscription,
     get_messages_today, increment_messages,
     save_message, get_history, clear_history,
     create_chat, get_active_chat_id, set_active_chat,
-    get_user_chats, update_chat_title
+    get_user_chats, update_chat_title,
+    touch_user, get_stats
 )
 from claude_ai import ask_claude, ask_claude_with_image, AIError, ERROR_TEXT
 from formatting import send_long
@@ -109,6 +110,34 @@ async def cmd_clear(message: Message):
     await clear_history(message.from_user.id)
     await message.answer("🗑 Current chat history cleared!")
 
+# ─── /stats (только для админа) ────────────────────────────────────────────
+
+@router.message(Command("stats"))
+async def cmd_stats(message: Message):
+    user_id = message.from_user.id
+    if user_id not in ADMIN_IDS:
+        await message.answer(
+            f"⛔ Эта команда только для админа.\n\nТвой Telegram ID: <code>{user_id}</code>",
+            parse_mode="HTML"
+        )
+        return
+
+    s = await get_stats()
+    await message.answer(
+        "📊 <b>Статистика бота</b>\n\n"
+        f"👥 Всего пользователей: <b>{s['users_total']}</b>\n"
+        f"🆕 Новых сегодня: {s['users_new_today']}\n"
+        f"🆕 Новых за 7 дней: {s['users_new_week']}\n\n"
+        f"🔥 Активных сегодня: <b>{s['active_today']}</b>\n"
+        f"📅 Активных за 7 дней: {s['active_week']}\n"
+        f"🗓 Активных за 30 дней: {s['active_month']}\n\n"
+        f"💬 Сообщений сегодня: {s['msgs_today']}\n"
+        f"💬 Ответов ИИ всего: {s['msgs_total']}\n"
+        f"⭐ Активных подписок: {s['subscribers']}\n\n"
+        "<i>Время по UTC. «Активный» — получил хотя бы один ответ от ИИ.</i>",
+        parse_mode="HTML"
+    )
+
 # ─── Callbacks ─────────────────────────────────────────────────────────────
 
 @router.callback_query(F.data == "my_status")
@@ -186,6 +215,7 @@ async def handle_photo(message: Message):
         await message.answer(ERROR_TEXT)
         return
 
+    await touch_user(user_id)
     if not is_sub:
         await increment_messages(user_id)
 
@@ -224,6 +254,7 @@ async def handle_message(message: Message):
 
     await save_message(user_id, "user", message.text)
     await save_message(user_id, "assistant", reply)
+    await touch_user(user_id)
 
     if not is_sub:
         await increment_messages(user_id)

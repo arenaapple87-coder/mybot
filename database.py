@@ -34,6 +34,12 @@ async def init_db():
                 created_at TEXT DEFAULT (datetime('now'))
             )
         """)
+        # Новые колонки для статистики (для уже существующей базы)
+        for column in ("last_active TEXT", "total_messages INTEGER DEFAULT 0"):
+            try:
+                await db.execute(f"ALTER TABLE users ADD COLUMN {column}")
+            except aiosqlite.OperationalError:
+                pass  # колонка уже есть
         await db.commit()
 
 # ─── Пользователи ──────────────────────────────────────────────────────────
@@ -176,3 +182,35 @@ async def clear_history(user_id: int):
             (user_id, chat_id)
         )
         await db.commit()
+
+# ─── Статистика ────────────────────────────────────────────────────────────
+
+async def touch_user(user_id: int):
+    """Отмечает, что пользователь получил ответ от ИИ (для статистики)."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """UPDATE users SET last_active = datetime('now'),
+                                total_messages = COALESCE(total_messages, 0) + 1
+               WHERE user_id = ?""",
+            (user_id,)
+        )
+        await db.commit()
+
+async def get_stats() -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async def one(sql):
+            cursor = await db.execute(sql)
+            row = await cursor.fetchone()
+            return row[0] or 0
+
+        return {
+            "users_total":   await one("SELECT COUNT(*) FROM users"),
+            "users_new_today": await one("SELECT COUNT(*) FROM users WHERE date(created_at) = date('now')"),
+            "users_new_week":  await one("SELECT COUNT(*) FROM users WHERE created_at >= datetime('now', '-7 days')"),
+            "active_today":  await one("SELECT COUNT(*) FROM users WHERE date(last_active) = date('now')"),
+            "active_week":   await one("SELECT COUNT(*) FROM users WHERE last_active >= datetime('now', '-7 days')"),
+            "active_month":  await one("SELECT COUNT(*) FROM users WHERE last_active >= datetime('now', '-30 days')"),
+            "msgs_today":    await one("SELECT COUNT(*) FROM history WHERE role = 'user' AND date(created_at) = date('now')"),
+            "msgs_total":    await one("SELECT SUM(total_messages) FROM users"),
+            "subscribers":   await one("SELECT COUNT(*) FROM users WHERE sub_expires > datetime('now')"),
+        }
