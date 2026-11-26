@@ -2,3 +2,5 @@
 .venv
 .venv312
 *.db
+__pycache__/
+*.pyc

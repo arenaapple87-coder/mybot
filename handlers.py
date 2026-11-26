@@ -1,3 +1,4 @@
+import html
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart, Command
@@ -10,7 +11,8 @@ from database import (
     create_chat, get_active_chat_id, set_active_chat,
     get_user_chats, update_chat_title
 )
-from claude_ai import ask_claude, ask_claude_with_image
+from claude_ai import ask_claude, ask_claude_with_image, AIError, ERROR_TEXT
+from formatting import send_long
 from keyboards import main_menu
 
 router = Router()
@@ -141,7 +143,7 @@ async def cb_switchchat(call: CallbackQuery):
 
     chats = await get_user_chats(call.from_user.id)
     chat = next((c for c in chats if c["id"] == chat_id), None)
-    title = chat["title"] if chat else "chat"
+    title = html.escape(chat["title"]) if chat else "chat"
 
     await call.message.answer(
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -178,12 +180,16 @@ async def handle_photo(message: Message):
     image_data = file_bytes.read()
 
     caption = message.caption or ""
-    reply = await ask_claude_with_image(image_data, "image/jpeg", caption)
+    try:
+        reply = await ask_claude_with_image(image_data, "image/jpeg", caption)
+    except AIError:
+        await message.answer(ERROR_TEXT)
+        return
 
     if not is_sub:
         await increment_messages(user_id)
 
-    await message.answer(reply, parse_mode="HTML")
+    await send_long(message, reply)
 
 # ─── Текст ─────────────────────────────────────────────────────────────────
 
@@ -205,27 +211,34 @@ async def handle_message(message: Message):
 
     await message.bot.send_chat_action(message.chat.id, "typing")
 
-    await save_message(user_id, "user", message.text)
     history = await get_history(user_id)
-    reply = await ask_claude(history)
-    await save_message(user_id, "assistant", reply)
+    is_first_message = len(history) == 0
+    history.append({"role": "user", "content": message.text})
 
-    # Автоназвание чата после первого сообщения
-    chat_id = await get_active_chat_id(user_id)
-    history_count = len(history)
-    if history_count == 1:
-        try:
-            title_prompt = [{"role": "user", "content": f"Give a short 3-5 word title for a chat that starts with: '{message.text}'. Reply with title only, no quotes."}]
-            title = await ask_claude(title_prompt)
-            title = title.strip()[:50]
-            await update_chat_title(chat_id, title)
-        except:
-            pass
+    try:
+        reply = await ask_claude(history)
+    except AIError:
+        # ошибку не сохраняем в историю и не списываем сообщение из лимита
+        await message.answer(ERROR_TEXT)
+        return
+
+    await save_message(user_id, "user", message.text)
+    await save_message(user_id, "assistant", reply)
 
     if not is_sub:
         await increment_messages(user_id)
 
-    await message.answer(reply, parse_mode="HTML")
+    await send_long(message, reply)
+
+    # Автоназвание чата после первого сообщения
+    if is_first_message:
+        try:
+            chat_id = await get_active_chat_id(user_id)
+            title_prompt = [{"role": "user", "content": f"Give a short 3-5 word title for a chat that starts with: '{message.text[:500]}'. Reply with title only, no quotes, no formatting."}]
+            title = await ask_claude(title_prompt, max_tokens=30)
+            await update_chat_title(chat_id, title.strip().strip('"*')[:50])
+        except Exception:
+            pass
 
 # ─── Статус ────────────────────────────────────────────────────────────────
 
@@ -235,7 +248,7 @@ async def show_status(user_id: int, message: Message, edit: bool = False):
     active_chat_id = await get_active_chat_id(user_id)
     chats = await get_user_chats(user_id)
     chat = next((c for c in chats if c["id"] == active_chat_id), None)
-    chat_title = chat["title"] if chat else "Unknown"
+    chat_title = html.escape(chat["title"]) if chat else "Unknown"
 
     text = (
         f"👤 <b>Your status:</b>\n\n"

@@ -130,7 +130,7 @@ async def set_active_chat(user_id: int, chat_id: int):
 async def get_user_chats(user_id: int) -> list:
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "SELECT id, title FROM chats WHERE user_id = ? ORDER BY created_at DESC LIMIT 10",
+            "SELECT id, title FROM chats WHERE user_id = ? ORDER BY id DESC LIMIT 10",
             (user_id,)
         )
         rows = await cursor.fetchall()
@@ -161,7 +161,7 @@ async def get_history(user_id: int, limit: int = 20) -> list:
         cursor = await db.execute(
             """SELECT role, content FROM history
                WHERE user_id = ? AND chat_id = ?
-               ORDER BY created_at DESC
+               ORDER BY id DESC
                LIMIT ?""",
             (user_id, chat_id, limit)
         )
