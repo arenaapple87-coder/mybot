@@ -1,9 +1,15 @@
+import os
 import aiosqlite
 from datetime import datetime, date
 
-DB_PATH = "bot_database.db"
+# На Railway база должна лежать на Volume, иначе она стирается при каждом обновлении.
+# Укажи в Variables: DB_PATH=/data/bot_database.db
+DB_PATH = os.getenv("DB_PATH", "bot_database.db")
 
 async def init_db():
+    folder = os.path.dirname(DB_PATH)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS users (
