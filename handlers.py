@@ -327,6 +327,8 @@ def parse_payload(payload: str):
 @router.pre_checkout_query()
 async def pre_checkout(query: PreCheckoutQuery):
     plan, stars = parse_payload(query.invoice_payload)
+    if stars < 0 and plan in PLANS:  # счёт из старой версии бота, без цены внутри
+        stars = (await settings.get_prices())[plan]["stars"]
     ok = plan in PLANS and query.currency == "XTR" and query.total_amount == stars
     await query.answer(ok=ok, error_message=None if ok else "Plan not found, please try again: /subscribe")
 
