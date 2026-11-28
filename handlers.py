@@ -41,9 +41,12 @@ async def check_limit(message: Message, lang: str) -> bool:
     """Регистрирует пользователя и проверяет дневной лимит. True — можно отвечать."""
     user = message.from_user
     await get_or_create_user(user.id, user.username or "")
+    count = await get_messages_today(user.id)  # заодно обнуляет счётчик в новый день
+    if user.id in ADMIN_IDS:
+        return True  # админу без лимитов
     is_sub = await get_sub_expires(user.id) is not None
     limit = await settings.sub_limit() if is_sub else await settings.free_limit()
-    if await get_messages_today(user.id) >= limit:
+    if count >= limit:
         if is_sub:
             await message.answer(t(lang, "limit_sub", limit=limit))
         else:
@@ -163,6 +166,8 @@ async def status_text(user) -> str:
     expires = await get_sub_expires(user.id)
     limit = await settings.sub_limit() if expires else await settings.free_limit()
     count = await get_messages_today(user.id)
+    if user.id in ADMIN_IDS:
+        return f"👑 <b>Админ</b>: без лимитов\n💬 Сообщений сегодня: {count}"
     active_chat_id = await get_active_chat_id(user.id)
     chats = await get_user_chats(user.id)
     chat = next((c for c in chats if c["id"] == active_chat_id), None)
