@@ -40,3 +40,8 @@ PLANS = {
     "3_months": {"days": 90,  "months": 3,  "pay_months": 2.5},
     "1_year":   {"days": 365, "months": 12, "pay_months": 8},
 }
+
+# ─── Промокоды: КОД -> сколько дней подписки даёт. Каждый человек — один раз. ──
+PROMO_CODES = {
+    "LYDMILA": 7,
+}

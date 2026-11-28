@@ -19,9 +19,9 @@ TEXTS = {
         "en": "👋 Hi, {name}!\n\nI'm an AI assistant. Write a question, send a photo, a voice message or a file (PDF, Word, TXT), and I'll answer!\n\n🆓 Free: <b>{free} messages per day</b>\n⭐ Subscription: /subscribe\n\n/newchat — new chat\n/chats — my chats",
     },
     "help": {
-        "ru": "📌 <b>Команды:</b>\n/start — главное меню\n/newchat — новый чат\n/chats — мои чаты\n/status — мой лимит\n/clear — очистить текущий чат\n/subscribe — подписка ⭐\n/help — помощь\n\nМожно писать текст, отправлять фото, голосовые и файлы (PDF, Word, TXT).",
-        "uk": "📌 <b>Команди:</b>\n/start — головне меню\n/newchat — новий чат\n/chats — мої чати\n/status — мій ліміт\n/clear — очистити поточний чат\n/subscribe — підписка ⭐\n/help — допомога\n\nМожна писати текст, надсилати фото, голосові та файли (PDF, Word, TXT).",
-        "en": "📌 <b>Commands:</b>\n/start — main menu\n/newchat — new chat\n/chats — my chats\n/status — my limit\n/clear — clear current chat\n/subscribe — subscription ⭐\n/help — help\n\nYou can send text, photos, voice messages and files (PDF, Word, TXT).",
+        "ru": "📌 <b>Команды:</b>\n/start — главное меню\n/newchat — новый чат\n/chats — мои чаты\n/status — мой лимит\n/clear — очистить текущий чат\n/subscribe — подписка ⭐\n/promo КОД — промокод 🎁\n/help — помощь\n\nМожно писать текст, отправлять фото, голосовые и файлы (PDF, Word, TXT).",
+        "uk": "📌 <b>Команди:</b>\n/start — головне меню\n/newchat — новий чат\n/chats — мої чати\n/status — мій ліміт\n/clear — очистити поточний чат\n/subscribe — підписка ⭐\n/promo КОД — промокод 🎁\n/help — допомога\n\nМожна писати текст, надсилати фото, голосові та файли (PDF, Word, TXT).",
+        "en": "📌 <b>Commands:</b>\n/start — main menu\n/newchat — new chat\n/chats — my chats\n/status — my limit\n/clear — clear current chat\n/subscribe — subscription ⭐\n/promo CODE — promo code 🎁\n/help — help\n\nYou can send text, photos, voice messages and files (PDF, Word, TXT).",
     },
     "new_chat": {
         "ru": "━━━━━━━━━━━━━━━━━━━\n✨ <b>Новый чат начат!</b>\n━━━━━━━━━━━━━━━━━━━\n\nПривет! Чем помочь?",
@@ -151,6 +151,27 @@ TEXTS = {
         "uk": "💬 Питання щодо оплати? Напиши адміністратору бота{contact}. Вкажи дату оплати — розберемося.",
         "en": "💬 Payment questions? Contact the bot admin{contact}. Include the payment date and we'll sort it out.",
     },
+    # ─── Промокоды ───
+    "promo_ok": {
+        "ru": "🎁 Промокод активирован! Подписка на {days} дн. — до <b>{date}</b>.\nДо {limit} сообщений в день. Пользуйся!",
+        "uk": "🎁 Промокод активовано! Підписка на {days} дн. — до <b>{date}</b>.\nДо {limit} повідомлень на день. Користуйся!",
+        "en": "🎁 Promo code activated! {days}-day subscription until <b>{date}</b>.\nUp to {limit} messages a day. Enjoy!",
+    },
+    "promo_used": {
+        "ru": "🎁 Ты уже использовал(а) этот промокод. Каждый промокод можно активировать один раз.",
+        "uk": "🎁 Ти вже використав(ла) цей промокод. Кожен промокод можна активувати один раз.",
+        "en": "🎁 You've already used this promo code. Each code works once per person.",
+    },
+    "promo_bad": {
+        "ru": "🎁 Такого промокода нет. Проверь, правильно ли он написан.",
+        "uk": "🎁 Такого промокоду немає. Перевір, чи правильно він написаний.",
+        "en": "🎁 This promo code doesn't exist. Check the spelling.",
+    },
+    "promo_how": {
+        "ru": "🎁 Напиши промокод после команды, например: <code>/promo КОД</code>\nИли просто отправь сам код сообщением.",
+        "uk": "🎁 Напиши промокод після команди, наприклад: <code>/promo КОД</code>\nАбо просто надішли сам код повідомленням.",
+        "en": "🎁 Write the code after the command, e.g. <code>/promo CODE</code>\nOr just send the code as a message.",
+    },
     # ─── Кнопки ───
     "btn_clear": {"ru": "🗑 Очистить историю", "uk": "🗑 Очистити історію", "en": "🗑 Clear history"},
     "btn_status": {"ru": "ℹ️ Мой статус", "uk": "ℹ️ Мій статус", "en": "ℹ️ My status"},
@@ -161,11 +182,11 @@ TEXTS = {
 
 COMMANDS = {
     "ru": [("start", "🏠 Главное меню"), ("newchat", "✨ Новый чат"), ("chats", "💬 Мои чаты"),
-           ("status", "📊 Мой лимит"), ("subscribe", "⭐ Подписка"), ("clear", "🗑 Очистить чат"), ("help", "❓ Помощь")],
+           ("status", "📊 Мой лимит"), ("subscribe", "⭐ Подписка"), ("promo", "🎁 Промокод"), ("clear", "🗑 Очистить чат"), ("help", "❓ Помощь")],
     "uk": [("start", "🏠 Головне меню"), ("newchat", "✨ Новий чат"), ("chats", "💬 Мої чати"),
-           ("status", "📊 Мій ліміт"), ("subscribe", "⭐ Підписка"), ("clear", "🗑 Очистити чат"), ("help", "❓ Допомога")],
+           ("status", "📊 Мій ліміт"), ("subscribe", "⭐ Підписка"), ("promo", "🎁 Промокод"), ("clear", "🗑 Очистити чат"), ("help", "❓ Допомога")],
     "en": [("start", "🏠 Main menu"), ("newchat", "✨ New chat"), ("chats", "💬 My chats"),
-           ("status", "📊 My limit"), ("subscribe", "⭐ Subscription"), ("clear", "🗑 Clear chat"), ("help", "❓ Help")],
+           ("status", "📊 My limit"), ("subscribe", "⭐ Subscription"), ("promo", "🎁 Promo code"), ("clear", "🗑 Clear chat"), ("help", "❓ Help")],
 }
 
 

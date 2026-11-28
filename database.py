@@ -56,6 +56,14 @@ async def init_db():
                 value TEXT
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS promo_uses (
+                user_id    INTEGER,
+                code       TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (user_id, code)
+            )
+        """)
         # Новые колонки для статистики (для уже существующей базы)
         for column in ("last_active TEXT", "total_messages INTEGER DEFAULT 0"):
             try:
@@ -118,6 +126,30 @@ async def extend_subscription(user_id: int, days: int, plan: str, stars: int, ch
         )
         await db.commit()
     return expires
+
+async def use_promo(user_id: int, code: str, days: int):
+    """Активирует промокод. Возвращает новую дату окончания подписки
+    или None, если этот человек уже использовал этот код."""
+    start = await get_sub_expires(user_id) or datetime.utcnow()
+    expires = start + timedelta(days=days)
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute(
+                "INSERT INTO promo_uses (user_id, code) VALUES (?, ?)", (user_id, code)
+            )
+        except aiosqlite.IntegrityError:
+            return None
+        await db.execute(
+            "UPDATE users SET sub_expires = ? WHERE user_id = ?",
+            (expires.isoformat(sep=" ", timespec="seconds"), user_id)
+        )
+        await db.commit()
+    return expires
+
+async def get_promo_counts() -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT code, COUNT(*) FROM promo_uses GROUP BY code")
+        return {code: count for code, count in await cursor.fetchall()}
 
 async def get_messages_today(user_id: int) -> int:
     async with aiosqlite.connect(DB_PATH) as db:

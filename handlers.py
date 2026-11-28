@@ -1,14 +1,14 @@
 import html
 
 from aiogram import Router, F
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart, Command, CommandObject
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton,
     LabeledPrice, PreCheckoutQuery,
 )
 
 from config import (
-    ADMIN_IDS, PLANS, SUPPORT_CONTACT,
+    ADMIN_IDS, PLANS, SUPPORT_CONTACT, PROMO_CODES,
     HISTORY_MESSAGES, VOICE_MAX_MINUTES, FILE_MAX_MB, FILE_MAX_CHARS, PDF_SCAN_MAX_PAGES,
 )
 from database import (
@@ -18,6 +18,7 @@ from database import (
     create_chat, get_active_chat_id, set_active_chat,
     get_user_chats, update_chat_title,
     touch_user, get_stats, set_setting,
+    use_promo, get_promo_counts,
 )
 import settings
 from claude_ai import ask_claude, ask_claude_with_image, ask_claude_with_pdf, AIError
@@ -59,8 +60,12 @@ async def count_message(user_id: int):
 # ─── /start, /help ─────────────────────────────────────────────────────────
 
 @router.message(CommandStart())
-async def cmd_start(message: Message):
+async def cmd_start(message: Message, command: CommandObject):
     lang = get_lang(message.from_user)
+    # ссылка вида t.me/бот?start=LYDMILA сразу активирует промокод
+    if command.args and command.args.upper() in PROMO_CODES:
+        await get_or_create_user(message.from_user.id, message.from_user.username or "")
+        await activate_promo(message, lang, command.args)
     await get_or_create_user(message.from_user.id, message.from_user.username or "")
     await message.answer(
         t(lang, "start", name=html.escape(message.from_user.first_name or ""), free=await settings.free_limit()),
@@ -198,6 +203,8 @@ async def cmd_stats(message: Message):
         return
 
     s = await get_stats()
+    promo = await get_promo_counts()
+    promo_lines = "".join(f"🎁 Промокод {code}: {promo.get(code, 0)} активаций\n" for code in PROMO_CODES)
     await message.answer(
         "📊 <b>Статистика бота</b>\n\n"
         f"👥 Всего пользователей: <b>{s['users_total']}</b>\n"
@@ -211,6 +218,7 @@ async def cmd_stats(message: Message):
         f"⭐ Активных подписок: {s['subscribers']}\n"
         f"⭐ Заработано звёзд за 30 дней: {s['stars_month']}\n"
         f"⭐ Заработано звёзд всего: {s['stars_total']}\n\n"
+        f"{promo_lines}\n"
         "<i>Время по UTC. «Активный» — получил хотя бы один ответ от ИИ.</i>\n⚙️ Цены и лимиты: /admin",
         parse_mode="HTML",
     )
@@ -270,6 +278,34 @@ async def cmd_setlimit(message: Message):
         return
     await set_setting(keys[parts[1]], int(parts[2]))
     await message.answer("✅ Готово!\n\n" + await admin_text(), parse_mode="HTML")
+
+
+# ─── Промокоды ─────────────────────────────────────────────────────────────
+
+async def activate_promo(message: Message, lang: str, code: str):
+    code = code.strip().upper()
+    if code not in PROMO_CODES:
+        await message.answer(t(lang, "promo_bad"))
+        return
+    await get_or_create_user(message.from_user.id, message.from_user.username or "")
+    days = PROMO_CODES[code]
+    expires = await use_promo(message.from_user.id, code, days)
+    if expires is None:
+        await message.answer(t(lang, "promo_used"))
+        return
+    await message.answer(
+        t(lang, "promo_ok", days=days, date=fmt_date(expires), limit=await settings.sub_limit()),
+        parse_mode="HTML", reply_markup=main_menu(lang),
+    )
+
+
+@router.message(Command("promo"))
+async def cmd_promo(message: Message, command: CommandObject):
+    lang = get_lang(message.from_user)
+    if not command.args:
+        await message.answer(t(lang, "promo_how"), parse_mode="HTML")
+        return
+    await activate_promo(message, lang, command.args)
 
 
 # ─── Подписка (Telegram Stars) ─────────────────────────────────────────────
@@ -512,6 +548,9 @@ async def handle_document(message: Message):
 @router.message(F.text)
 async def handle_message(message: Message):
     lang = get_lang(message.from_user)
+    if message.text.strip().upper() in PROMO_CODES:
+        await activate_promo(message, lang, message.text)
+        return
     if not await check_limit(message, lang):
         return
     await message.bot.send_chat_action(message.chat.id, "typing")
