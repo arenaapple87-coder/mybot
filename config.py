@@ -6,8 +6,10 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-# Ключ Groq для распознавания голосовых (бесплатно: console.groq.com).
-# Если не задан — голосовые просто отключены.
+# Распознавание голосовых: нужен один из ключей (если нет ни одного — голосовые выключены).
+# OpenAI: platform.openai.com (платно, меньше цента за минуту)
+# Groq:   console.groq.com (бесплатно, но доступен не во всех странах)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 # Telegram ID админов через запятую, например: 123456789,987654321

@@ -1,16 +1,20 @@
-"""Распознавание голосовых через Groq (модель Whisper). Бесплатный ключ: console.groq.com"""
+"""Распознавание голосовых. Работает через OpenAI или Groq — какой ключ задан."""
 import logging
 
 import httpx
 
-from config import GROQ_API_KEY
+from config import OPENAI_API_KEY, GROQ_API_KEY
 
-GROQ_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
-MODEL = "whisper-large-v3-turbo"
+if OPENAI_API_KEY:
+    URL, KEY, MODEL = "https://api.openai.com/v1/audio/transcriptions", OPENAI_API_KEY, "gpt-4o-mini-transcribe"
+elif GROQ_API_KEY:
+    URL, KEY, MODEL = "https://api.groq.com/openai/v1/audio/transcriptions", GROQ_API_KEY, "whisper-large-v3-turbo"
+else:
+    URL = KEY = MODEL = None
 
 
 def voice_enabled() -> bool:
-    return bool(GROQ_API_KEY)
+    return bool(KEY)
 
 
 async def transcribe(audio: bytes, filename: str = "voice.ogg") -> str:
@@ -18,10 +22,10 @@ async def transcribe(audio: bytes, filename: str = "voice.ogg") -> str:
     try:
         async with httpx.AsyncClient(timeout=60) as http:
             response = await http.post(
-                GROQ_URL,
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+                URL,
+                headers={"Authorization": f"Bearer {KEY}"},
                 data={"model": MODEL, "response_format": "json"},
-                files={"file": (filename, audio)},
+                files={"file": (filename, audio, "audio/ogg")},
             )
             response.raise_for_status()
             return (response.json().get("text") or "").strip()
